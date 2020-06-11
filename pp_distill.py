@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 """ PP_DISTILL - distill calibrated image databases into one database
                  of select moving or fixed sources
