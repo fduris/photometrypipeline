@@ -126,6 +126,12 @@ def extract_singleframe(data):
             optionstring += ' -SATUR_LEVEL 1000000'
             optionstring += ' -SATUR_KEY NOPE'
 
+    # check is run in singel- or two-file mode
+    if 'sex' in param.keys():
+        if not param['sex'] == '':
+            filename_orig = filename
+            filename = param['sex']
+
     commandline = '%s -c %s %s %s' % \
                   (sextractor_cmd,
                    param['obsparam']['sex-config-file'],
@@ -147,6 +153,12 @@ def extract_singleframe(data):
         return None
 
     sex.wait()
+
+    # return filename to original
+    if 'sex' in param.keys():
+        if not param['sex'] == '':
+            filename = filename_orig
+
 
     # read in LDAC file
     ldac_filename = filename[:filename.find('.fit')]+'.ldac'
@@ -213,7 +225,7 @@ def extract_multiframe(filenames, parameters):
     """
     wrapper to run multi-threaded source extraction
     input: FITS filenames, parameters dictionary: telescope, obsparam, aprad,
-                                                  quiet, sex_snr, source_minarea
+                                                  quiet, sex_snr, source_minarea, sex
     output: result properties
     """
 
@@ -314,6 +326,8 @@ if __name__ == '__main__':
                         action="store_true")
     parser.add_argument('-quiet', help='no logging',
                         action="store_true")
+    # special params for compatibility with pyper
+    parser.add_argument('-sex', help='use two-file mode of sextractor', default='')
     parser.add_argument('images', help='images to process', nargs='+')
 
     args = parser.parse_args()
@@ -324,12 +338,14 @@ if __name__ == '__main__':
     telescope = args.telescope
     ignore_saturation = args.ignore_saturation
     quiet = args.quiet
+    sex = args.sex
     filenames = args.images
 
     # prepare parameter dictionary
     parameters = {'sex_snr':sex_snr, 'source_minarea':source_minarea, \
                   'aprad':aprad, 'telescope':telescope,
-                  'ignore_saturation':ignore_saturation, 'quiet':quiet}
+                  'ignore_saturation':ignore_saturation, 'quiet':quiet,
+                  'sex': sex} # special param form pyper
 
     if paramfile is not None:
         parameters['paramfile'] = paramfile

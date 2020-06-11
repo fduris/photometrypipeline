@@ -53,7 +53,7 @@ logging.basicConfig(filename=_pp_conf.log_filename,
 
 
 def register(filenames, telescope, sex_snr, source_minarea, aprad,
-             mancat, obsparam, source_tolerance, display=False,
+             mancat, obsparam, source_tolerance, sex, display=False,
              diagnostics=False):
     """
     registration wrapper
@@ -99,7 +99,8 @@ def register(filenames, telescope, sex_snr, source_minarea, aprad,
                              'aprad': aprad, 'telescope': telescope,
                              'ignore_saturation': True,
                              'global_background': False,
-                             'quiet': False}
+                             'quiet': False,
+                             'sex': sex} # special param from pyper
 
         extraction = pp_extract.extract_multiframe(filenames,
                                                    extractparameters)
@@ -283,43 +284,43 @@ def register(filenames, telescope, sex_snr, source_minarea, aprad,
     # was successful
     logging.info('update image headers with WCS solutions ')
 
-    for filename in goodfits:
-        # remove fake wcs header keys
-        fake_wcs_keys = ['RADECSYS', 'CTYPE1', 'CTYPE2', 'CRVAL1', 'CRVAL2',
-                         'CRPIX1', 'CRPIX2', 'CD1_1', 'CD1_2', 'CD2_1',
-                         'CD2_2', 'RADESYS']
-        hdu = fits.open(filename, mode='update', verify='silentfix',
-                        ignore_missing_end=True)
-        for fake_key in fake_wcs_keys:
-            hdu[0].header[fake_key] = ''
+    # for filename in goodfits:
+    #     # remove fake wcs header keys
+    #     fake_wcs_keys = ['RADECSYS', 'CTYPE1', 'CTYPE2', 'CRVAL1', 'CRVAL2',
+    #                      'CRPIX1', 'CRPIX2', 'CD1_1', 'CD1_2', 'CD2_1',
+    #                      'CD2_2', 'RADESYS']
+    #     hdu = fits.open(filename, mode='update', verify='silentfix',
+    #                     ignore_missing_end=True)
+    #     for fake_key in fake_wcs_keys:
+    #         hdu[0].header[fake_key] = ''
 
-        # read new header files
-        newhead = open(filename[:filename.find(
-            '.fit')]+'.head', 'r').readlines()
+    #     # read new header files
+    #     newhead = open(filename[:filename.find(
+    #         '.fit')]+'.head', 'r').readlines()
 
-        for line in newhead:
-            key = line[:8].strip()
-            try:
-                value = float(line[10:30].replace('\'', ' ').strip())
-            except ValueError:
-                value = line[10:30].replace('\'', ' ').strip()
-            comment = line[30:].strip()
-            if key.find('END') > -1:
-                break
-            # print key, '|',  value, '|',  comment
-            hdu[0].header[key] = (str(value), comment)
+    #     for line in newhead:
+    #         key = line[:8].strip()
+    #         try:
+    #             value = float(line[10:30].replace('\'', ' ').strip())
+    #         except ValueError:
+    #             value = line[10:30].replace('\'', ' ').strip()
+    #         comment = line[30:].strip()
+    #         if key.find('END') > -1:
+    #             break
+    #         # print key, '|',  value, '|',  comment
+    #         hdu[0].header[key] = (str(value), comment)
 
-        # other header keywords
-        hdu[0].header['RADECSYS'] = (hdu[0].header['RADESYS'],
-                                     'copied from RADESYS')
-        hdu[0].header['TEL_KEYW'] = (telescope, 'pipeline telescope keyword')
-        hdu[0].header['REGCAT'] = (refcat, 'catalog used in WCS registration')
-        hdu.flush(output_verify='silentfix')
-        hdu.close()
+    #     # other header keywords
+    #     hdu[0].header['RADECSYS'] = (hdu[0].header['RADESYS'],
+    #                                  'copied from RADESYS')
+    #     hdu[0].header['TEL_KEYW'] = (telescope, 'pipeline telescope keyword')
+    #     hdu[0].header['REGCAT'] = (refcat, 'catalog used in WCS registration')
+    #     hdu.flush(output_verify='silentfix')
+    #     hdu.close()
 
-        # cleaning up (in case the registration succeeded)
-        if len(goodfits) == len(filenames):
-            os.remove(filename[:filename.find('.fit')]+'.head')
+    #     # cleaning up (in case the registration succeeded)
+    #     if len(goodfits) == len(filenames):
+    #         os.remove(filename[:filename.find('.fit')]+'.head')
 
     if len(badfits) == len(filenames):
         if display:
@@ -374,6 +375,8 @@ if __name__ == '__main__':
                         default=None)
     parser.add_argument("-cat", help='manually select reference catalog',
                         choices=_pp_conf.allcatalogs, default=None)
+    # special params for compatibility with pyper
+    parser.add_argument('-sex', help='use two-file mode of sextractor', default='')
     parser.add_argument('images', help='images to process', nargs='+')
 
     args = parser.parse_args()
@@ -381,6 +384,7 @@ if __name__ == '__main__':
     source_minarea = float(args.minarea)
     mancat = args.cat
     source_tolerance = args.source_tolerance
+    sex = args.sex
     filenames = args.images
 
     # read telescope and filter information from fits headers
@@ -418,5 +422,5 @@ if __name__ == '__main__':
     # run registration wrapper
     registration = register(filenames, telescope, snr,
                             source_minarea, aprad, mancat, obsparam,
-                            source_tolerance,
+                            source_tolerance, sex,
                             display=True, diagnostics=True)

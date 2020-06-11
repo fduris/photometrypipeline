@@ -67,7 +67,7 @@ logging.basicConfig(filename=_pp_conf.log_filename,
 
 
 def run_the_pipeline(filenames, man_targetname, man_filtername,
-                     fixed_aprad, source_tolerance, solar):
+                     fixed_aprad, source_tolerance, solar, sex, starfield):
     """
     wrapper to run the photometry pipeline
     """
@@ -195,6 +195,7 @@ def run_the_pipeline(filenames, man_targetname, man_filtername,
                                         source_minarea, aprad,
                                         None, obsparam,
                                         obsparam['source_tolerance'],
+                                        sex,
                                         display=True,
                                         diagnostics=True)
 
@@ -232,8 +233,14 @@ def run_the_pipeline(filenames, man_targetname, man_filtername,
 
     # run photometry (curve-of-growth analysis)
     snr, source_minarea = 1.5, obsparam['source_minarea']
-    background_only = False
-    target_only = False
+
+    if starfield:
+        background_only = True
+        target_only = False
+    else:
+        background_only = False
+        target_only = False
+
     if fixed_aprad == 0:
         aprad = None  # force curve-of-growth analysis
     else:
@@ -348,6 +355,9 @@ if __name__ == '__main__':
     parser.add_argument('-solar',
                         help='restrict to solar-color stars',
                         action="store_true", default=False)
+    # special params from pyper
+    parser.add_argument('-sex',  help='use two-file mode of sextractor', default='')
+    parser.add_argument('-starfield', help='indicate run for star field', action="store_true", default=False)
     parser.add_argument('images', help='images to process or \'all\'',
                         nargs='+')
 
@@ -358,6 +368,8 @@ if __name__ == '__main__':
     fixed_aprad = float(args.fixed_aprad)
     source_tolerance = args.source_tolerance
     solar = args.solar
+    sex = args.sex
+    starfield = args.starfield
     filenames = sorted(args.images)
 
     # if filenames = ['all'], walk through directories and run pipeline
@@ -391,7 +403,7 @@ if __name__ == '__main__':
                 os.chdir(root)
 
                 run_the_pipeline(filenames, man_targetname, man_filtername,
-                                 fixed_aprad, source_tolerance, solar)
+                                 fixed_aprad, source_tolerance, solar, sex, starfield)
                 os.chdir(_masterroot_directory)
             else:
                 print('\n NOTHING TO DO IN %s' % root)
@@ -399,5 +411,5 @@ if __name__ == '__main__':
     else:
         # call run_the_pipeline only on filenames
         run_the_pipeline(filenames, man_targetname, man_filtername,
-                         fixed_aprad, source_tolerance, solar)
+                         fixed_aprad, source_tolerance, solar, sex, starfield)
         pass
